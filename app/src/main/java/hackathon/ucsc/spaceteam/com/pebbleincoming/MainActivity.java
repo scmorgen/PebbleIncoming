@@ -18,7 +18,9 @@ public class MainActivity extends ActionBarActivity {
             KEY_BUTTON_EVENT = 0,
             BUTTON_EVENT_UP = 1,
             BUTTON_EVENT_DOWN = 2,
-            BUTTON_EVENT_SELECT = 3;
+            BUTTON_EVENT_SELECT = 3,
+            KEY_LOCATION= 4,
+            KEY_TEMPERATURE = 5;
 
     private PebbleDataReceiver mReceiver;
     @Override
@@ -51,6 +53,7 @@ public class MainActivity extends ActionBarActivity {
                             mButtonView.setText("UP button pressed!");
                             break;
                         case BUTTON_EVENT_DOWN:
+                            updateWatchApp();
                             mButtonView.setText("DOWN button pressed!");
                             break;
                         case BUTTON_EVENT_SELECT:
@@ -69,5 +72,21 @@ public class MainActivity extends ActionBarActivity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver( mReceiver);
+    }
+
+
+    // Push (distance, time, pace) data to be displayed on Pebble's Sports app.
+    //
+    // To simplify formatting, values are transmitted to the watch as strings.
+    public void updateWatchApp() {
+        //String time = String.format("%02d:%02d", rand.nextInt(60), rand.nextInt(60));
+        //String distance = String.format("%02.02f", 32 * rand.nextDouble());
+        //String addl_data = String.format("%02d:%02d", rand.nextInt(10), rand.nextInt(60));
+
+        PebbleDictionary data = new PebbleDictionary();
+        data.addString(KEY_LOCATION, "London");
+        data.addInt32(KEY_TEMPERATURE, 37);
+
+        PebbleKit.sendDataToPebble(getApplicationContext(), UUID.fromString("7c02f3fb-ff81-4893-aa1c-f741b2e7c3ff"), data);
     }
 }
