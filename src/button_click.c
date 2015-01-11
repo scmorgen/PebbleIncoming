@@ -14,7 +14,7 @@ enum {
 static Window *window;
 TextLayer *phase_layer, *score_layer, *role_layer, *gesture_layer;
 char phase_buffer[64], score_buffer[32], role_buffer[32], gesture_buffer[32];
-
+int lastGesture;
 
 void send_int(uint8_t key, uint8_t cmd)
 {
@@ -27,19 +27,26 @@ void send_int(uint8_t key, uint8_t cmd)
     app_message_outbox_send();
 }
 
+//handles sending a gesture
+static void sendGesture(int gestureKey) {
+  lastGesture= gestureKey;
+  send_int(KEY_GESTURE, gestureKey);
+  
+}
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
   text_layer_set_text(gesture_layer, "Last Gesture: SELECT");
-  send_int(KEY_GESTURE, GESTURE_2);
+  sendGesture(GESTURE_2);
 }
  
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
   text_layer_set_text(gesture_layer, "Last Gesture: UP");
-  send_int(KEY_GESTURE, GESTURE_1);
+  sendGesture(GESTURE_1);
 }
  
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
   text_layer_set_text(gesture_layer, "Last Gesture: DOWN");
-  send_int(KEY_GESTURE, GESTURE_3);
+  sendGesture(GESTURE_3);
+  
 }
  
 static void click_config_provider(void *context) {
@@ -82,7 +89,7 @@ void process_tuple(Tuple *t)
       } else if (value== FINAL_SCREEN) {
         strcpy(string_value,"Its the end!");
       }
-      snprintf(phase_buffer, sizeof("Phase: a long phasename"), "Location: %s", string_value);
+      snprintf(phase_buffer, sizeof("Phase: a long phasename"), "Phase: %s", string_value);
       text_layer_set_text(phase_layer, (char*) &phase_buffer);
       break;
     case KEY_SEND_ROLE:
@@ -91,12 +98,26 @@ void process_tuple(Tuple *t)
       text_layer_set_text(role_layer, (char*) &role_buffer);
       break;
     case KEY_SCORE_UPDATE:
-      snprintf(score_buffer, sizeof("Score: XXX"), "Role: %d", value);
+      snprintf(score_buffer, sizeof("Score: XXX"), "Score: %d", value);
       text_layer_set_text(score_layer, (char*) &score_buffer);
       break;
     break;
       
   }
+}
+
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
+}
+
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
+  sendGesture(lastGesture);
+}
+
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
+  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 // Called when a message is received from PebbleKitJS
 static void in_received_handler(DictionaryIterator *received, void *context) {
@@ -155,7 +176,11 @@ static void init(void) {
   window_stack_push(window, animated);
   
   //Register AppMessage events
-  app_message_register_inbox_received(in_received_handler);           
+  
+  app_message_register_inbox_received(in_received_handler);
+  app_message_register_inbox_dropped(inbox_dropped_callback);
+  app_message_register_outbox_failed(outbox_failed_callback);
+  app_message_register_outbox_sent(outbox_sent_callback);
   app_message_open(512, 512);    //Large input and output buffer sizes
 }
  
