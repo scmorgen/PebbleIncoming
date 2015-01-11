@@ -22,6 +22,8 @@ public class MainActivity extends ActionBarActivity {
             KEY_LOCATION= 4,
             KEY_TEMPERATURE = 5;
 
+    private UUID Pebble_UUID = UUID.fromString("7c02f3fb-ff81-4893-aa1c-f741b2e7c3ff");
+
     private PebbleDataReceiver mReceiver;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,13 +33,14 @@ public class MainActivity extends ActionBarActivity {
         mButtonView.setText("No button yet!");
 
         setContentView(mButtonView);
+        PebbleKit.startAppOnPebble(getApplicationContext(), Pebble_UUID);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        mReceiver = new PebbleDataReceiver(UUID.fromString("7c02f3fb-ff81-4893-aa1c-f741b2e7c3ff")) {
+        mReceiver = new PebbleDataReceiver(Pebble_UUID) {
 
             @Override
             public void receiveData(Context context, int transactionId, PebbleDictionary data) {
@@ -74,6 +77,14 @@ public class MainActivity extends ActionBarActivity {
         unregisterReceiver( mReceiver);
     }
 
+    public void startWatchApp() {
+        PebbleKit.startAppOnPebble(getApplicationContext(), Pebble_UUID);
+    }
+
+    // Send a broadcast to close the specified application on the connected Pebble
+    public void stopWatchApp() {
+        PebbleKit.closeAppOnPebble(getApplicationContext(), Pebble_UUID);
+    }
 
     // Push (distance, time, pace) data to be displayed on Pebble's Sports app.
     //
@@ -87,6 +98,6 @@ public class MainActivity extends ActionBarActivity {
         data.addString(KEY_LOCATION, "London");
         data.addInt32(KEY_TEMPERATURE, 37);
 
-        PebbleKit.sendDataToPebble(getApplicationContext(), UUID.fromString("7c02f3fb-ff81-4893-aa1c-f741b2e7c3ff"), data);
+        PebbleKit.sendDataToPebble(getApplicationContext(), Pebble_UUID, data);
     }
 }
