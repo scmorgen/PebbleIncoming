@@ -9,6 +9,7 @@ import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.PebbleKit.PebbleDataReceiver;
 import com.getpebble.android.kit.util.PebbleDictionary;
 
+import java.util.Random;
 import java.util.UUID;
 
 //Pebble imports
@@ -31,9 +32,9 @@ public class MainActivity extends ActionBarActivity {
 
     //This is a list of commands from client to watch
     private static final int
-            KEY_SEND_ROLE= 4,
-            KEY_SEND_PHASE=5,
-            KEY_SCORE_UPDATE= 6,
+            KEY_SEND_ROLE= 4,  //Key, use a string as data
+            KEY_SEND_PHASE=5, //Key, use an enum below as data
+            KEY_SCORE_UPDATE= 6, //Key, use an int as data
             WAITING_ROOM_SCREEN= 7,
             GAME_PLAY_SCREEN=8,
             FINAL_SCREEN=9;
@@ -41,6 +42,8 @@ public class MainActivity extends ActionBarActivity {
     //This is the connection to our particular phone app (determined by UUID given in cloudpebble)
     private UUID Pebble_UUID = UUID.fromString("7c02f3fb-ff81-4893-aa1c-f741b2e7c3ff");
     private PebbleDataReceiver mReceiver; //this is our data receiver
+    private int score=0;
+    private int buttonCount=0;
 
 
     /**********END OF VARIABLES FOR PEBBLE INTERACTION ******/
@@ -71,28 +74,31 @@ public class MainActivity extends ActionBarActivity {
             public void receiveData(Context context, int transactionId, PebbleDictionary data) {
                 //ACK the message
                 PebbleKit.sendAckToPebble(context, transactionId);
-
                 //Check the key exists
                 if(data.getUnsignedIntegerAsLong( KEY_GESTURE) != null) {
                     int button = data.getUnsignedIntegerAsLong(KEY_GESTURE).intValue();
+                    buttonCount++;
                     switch(button) {
                         case GESTURE_1:
                             //Insert Instructions here upon receiving a gesture 1 (please empty)
-                            mButtonView.setText("Gesture 1 Done!, sending transition");
-                            sendToWatchApp(KEY_SEND_PHASE, WAITING_ROOM_SCREEN);
-                            sendToWatchApp(KEY_SEND_ROLE, "Elf");
+                            mButtonView.setText("Gesture 1 Done!, sending a round start: "+buttonCount );
+                            String role= chooseRandomRole();
+                            sendRoundStartToWatch(role);
                             break;
                         case GESTURE_2:
                             //Insert Instructions here upon receiving a gesture 2 (please empty)
-                            mButtonView.setText("Gesture 2 Done!, sending transition");
-                            sendToWatchApp(KEY_SEND_PHASE, GAME_PLAY_SCREEN);
-                            sendToWatchApp(KEY_SEND_ROLE, "Gnome");
+                            mButtonView.setText("Gesture 2 Done! sending a phase: "+ buttonCount);
+                            if (score>=100) {
+                                sendPhaseToWatch(FINAL_SCREEN, 100);
+                            } else {
+                                sendPhaseToWatch(WAITING_ROOM_SCREEN, score);
+                            }
                             break;
                         case GESTURE_3:
                             //Insert Instructions for gesture 3 (please empty)
-                            mButtonView.setText("Gesture 3 Done!, sending transmission");
-                            sendToWatchApp(KEY_SEND_PHASE, FINAL_SCREEN);
-                            sendToWatchApp(KEY_SEND_ROLE, "Orc");
+                            mButtonView.setText("Gesture 3 Done!, increasing score"+ buttonCount);
+                            score+=10;
+                            sendScoreToWatch(score);
                             break;
                     }
                 }
@@ -100,6 +106,7 @@ public class MainActivity extends ActionBarActivity {
         };
 
         PebbleKit.registerReceivedDataHandler(this, mReceiver);
+
         //End of pebble code for Game Play
 
     }
@@ -124,25 +131,46 @@ public class MainActivity extends ActionBarActivity {
         PebbleKit.closeAppOnPebble(getApplicationContext(), Pebble_UUID);
     }
 
-    // Send Data to Watch
-    //Ideally Just when phases changed (start, waitRoom, exit, etc)
-    public void sendToWatchApp(int role, Object message) {
-        //String time = String.format("%02d:%02d", rand.nextInt(60), rand.nextInt(60));
-        //String distance = String.format("%02.02f", 32 * rand.nextDouble());
-        //String addl_data = String.format("%02d:%02d", rand.nextInt(10), rand.nextInt(60));
 
+    //Three functions to send info to watch:
+    //Round start: send game play screen and role
+    //Change Phase: sends phase change and score
+    //sendScoreToWatch: just sends score
+    public void sendRoundStartToWatch(String role) {
         PebbleDictionary data = new PebbleDictionary();
-        if (message instanceof String) {
-            data.addString(role, (String) message);
-        }
-        else if (message instanceof Integer) {
-            data.addInt32(role, (int) message);
-        }
-        else {
-            mButtonView.setText("Message is not an appropriate data-type; Message: "+message);
-
-        }
-
+        data.addInt32(KEY_SEND_PHASE, GAME_PLAY_SCREEN);
+        data.addString(KEY_SEND_ROLE, role);
         PebbleKit.sendDataToPebble(getApplicationContext(), Pebble_UUID, data);
+    }
+
+    public void sendPhaseToWatch(int phase, int score) {
+        PebbleDictionary data = new PebbleDictionary();
+        data.addInt32(KEY_SEND_PHASE, phase);
+        data.addInt32(KEY_SCORE_UPDATE, score);
+        PebbleKit.sendDataToPebble(getApplicationContext(), Pebble_UUID, data);
+    }
+
+    public void sendScoreToWatch(int score) {
+        PebbleDictionary data = new PebbleDictionary();
+        data.addInt32(KEY_SCORE_UPDATE, score);
+        PebbleKit.sendDataToPebble(getApplicationContext(), Pebble_UUID, data);
+
+    }
+
+    private String chooseRandomRole() {
+        String roles[]= {
+                "GnomesInRome",
+                "BamBamNotBatman",
+                "SeanAndSamson",
+                "RobABaby",
+                "Sojalicious",
+                "OrcsALot",
+                "Coxpiece",
+                "Peterpanopolis",
+                "Maximillion"
+        };
+        Random r= new Random();
+        int index= r.nextInt(roles.length);
+        return roles[index];
     }
 }
