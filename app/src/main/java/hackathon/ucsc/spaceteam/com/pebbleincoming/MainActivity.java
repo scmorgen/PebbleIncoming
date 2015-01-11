@@ -11,28 +11,50 @@ import com.getpebble.android.kit.util.PebbleDictionary;
 
 import java.util.UUID;
 
+//Pebble imports
+//End of Pebble Imports
+
 
 public class MainActivity extends ActionBarActivity {
+
+
     private TextView mButtonView;
+
+    /************ INITALIZATION of GLOBAL VARIABLES FOR WATCH INTERACTIONS *******/
+    //This needs to be used for communication
+    //This is a list of commands from watch to client
     private static final int
-            KEY_BUTTON_EVENT = 0,
-            BUTTON_EVENT_UP = 1,
-            BUTTON_EVENT_DOWN = 2,
-            BUTTON_EVENT_SELECT = 3,
-            KEY_LOCATION= 4,
-            KEY_TEMPERATURE = 5;
+            KEY_GESTURE = 0,
+            GESTURE_1 = 1,
+            GESTURE_2 = 2,
+            GESTURE_3 = 3;
 
+    //This is a list of commands from client to watch
+    private static final int
+            KEY_SEND_ROLE= 4,
+            KEY_SEND_PHASE=5,
+            WAITING_ROOM_SCREEN= 6,
+            GAME_PLAY_SCREEN=7,
+            FINAL_SCREEN=8;
+
+    //This is the connection to our particular phone app (determined by UUID given in cloudpebble)
     private UUID Pebble_UUID = UUID.fromString("7c02f3fb-ff81-4893-aa1c-f741b2e7c3ff");
+    private PebbleDataReceiver mReceiver; //this is our data receiver
 
-    private PebbleDataReceiver mReceiver;
+
+    /**********END OF VARIABLES FOR PEBBLE INTERACTION ******/
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        //
         mButtonView = new TextView(this);
         mButtonView.setText("No button yet!");
 
         setContentView(mButtonView);
+
+        //Place in OnCreate Code to start up Pebble
         PebbleKit.startAppOnPebble(getApplicationContext(), Pebble_UUID);
     }
 
@@ -40,63 +62,82 @@ public class MainActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
 
+        //Place in onResume or where-ever one expects to receive messages from pebble
         mReceiver = new PebbleDataReceiver(Pebble_UUID) {
 
+            //Function for receiving data from Pebble
             @Override
             public void receiveData(Context context, int transactionId, PebbleDictionary data) {
                 //ACK the message
                 PebbleKit.sendAckToPebble(context, transactionId);
 
                 //Check the key exists
-                if(data.getUnsignedIntegerAsLong( KEY_BUTTON_EVENT) != null) {
-                    int button = data.getUnsignedIntegerAsLong(KEY_BUTTON_EVENT).intValue();
-
+                if(data.getUnsignedIntegerAsLong( KEY_GESTURE) != null) {
+                    int button = data.getUnsignedIntegerAsLong(KEY_GESTURE).intValue();
                     switch(button) {
-                        case BUTTON_EVENT_UP:
-                            mButtonView.setText("UP button pressed!");
+                        case GESTURE_1:
+                            //Insert Instructions here upon receiving a gesture 1 (please empty)
+                            mButtonView.setText("Gesture 1 Done!, sending transition");
+                            sendToWatchApp(KEY_SEND_PHASE, WAITING_ROOM_SCREEN);
                             break;
-                        case BUTTON_EVENT_DOWN:
-                            updateWatchApp();
-                            mButtonView.setText("DOWN button pressed!");
+                        case GESTURE_2:
+                            //Insert Instructions here upon receiving a gesture 2 (please empty)
+                            mButtonView.setText("Gesture 2 Done!, sending transition");
+                            sendToWatchApp(KEY_SEND_PHASE, GAME_PLAY_SCREEN);
+                            sendToWatchApp(KEY_SEND_ROLE, "Gnome");
                             break;
-                        case BUTTON_EVENT_SELECT:
-                            mButtonView.setText("SELECT button pressed!");
+                        case GESTURE_3:
+                            //Insert Instructions for gesture 3 (please empty)
+                            mButtonView.setText("Gesture 3 Done!");
+                            sendToWatchApp(KEY_SEND_PHASE, FINAL_SCREEN);
                             break;
                     }
                 }
             }
-
         };
 
         PebbleKit.registerReceivedDataHandler(this, mReceiver);
+        //End of pebble code for Game Play
+
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+
+        //Don't receive data from Pebble
         unregisterReceiver( mReceiver);
     }
 
+    //Function to start up Watch (ideally when app started up)
     public void startWatchApp() {
         PebbleKit.startAppOnPebble(getApplicationContext(), Pebble_UUID);
     }
 
+    //Function to stop Watch (ideally when app is stopped)
     // Send a broadcast to close the specified application on the connected Pebble
     public void stopWatchApp() {
         PebbleKit.closeAppOnPebble(getApplicationContext(), Pebble_UUID);
     }
 
-    // Push (distance, time, pace) data to be displayed on Pebble's Sports app.
-    //
-    // To simplify formatting, values are transmitted to the watch as strings.
-    public void updateWatchApp() {
+    // Send Data to Watch
+    //Ideally Just when phases changed
+    public void sendToWatchApp(int role, Object message) {
         //String time = String.format("%02d:%02d", rand.nextInt(60), rand.nextInt(60));
         //String distance = String.format("%02.02f", 32 * rand.nextDouble());
         //String addl_data = String.format("%02d:%02d", rand.nextInt(10), rand.nextInt(60));
 
         PebbleDictionary data = new PebbleDictionary();
-        data.addString(KEY_LOCATION, "London");
-        data.addInt32(KEY_TEMPERATURE, 37);
+        if (message instanceof String) {
+            data.addString(role, (String) message);
+        }
+        else if (message instanceof Integer) {
+            data.addInt32(role, (int) message);
+        }
+        else {
+            mButtonView.setText("Message is not an appropriate data-type; Message: "+message);
+
+        }
 
         PebbleKit.sendDataToPebble(getApplicationContext(), Pebble_UUID, data);
     }
