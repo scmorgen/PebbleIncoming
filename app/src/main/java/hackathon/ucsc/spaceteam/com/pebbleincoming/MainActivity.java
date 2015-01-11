@@ -3,6 +3,7 @@ package hackathon.ucsc.spaceteam.com.pebbleincoming;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.widget.TextView;
 
 import com.getpebble.android.kit.PebbleKit;
@@ -44,6 +45,8 @@ public class MainActivity extends ActionBarActivity {
     private PebbleDataReceiver mReceiver; //this is our data receiver
     private int score=0;
     private int buttonCount=0;
+    private PebbleDictionary[] lastMessage= new PebbleDictionary[3];
+    private static int transactionID=0;
 
 
     /**********END OF VARIABLES FOR PEBBLE INTERACTION ******/
@@ -59,7 +62,8 @@ public class MainActivity extends ActionBarActivity {
         setContentView(mButtonView);
 
         //Place in OnCreate Code to start up Pebble
-        PebbleKit.startAppOnPebble(getApplicationContext(), Pebble_UUID);
+        stopWatchApp();
+        startWatchApp();
     }
 
     @Override
@@ -106,6 +110,25 @@ public class MainActivity extends ActionBarActivity {
         };
 
         PebbleKit.registerReceivedDataHandler(this, mReceiver);
+        PebbleKit.registerReceivedAckHandler(getApplicationContext(), new PebbleKit.PebbleAckReceiver(Pebble_UUID) {
+
+            @Override
+            public void receiveAck(Context context, int transactionId) {
+                Log.i(getLocalClassName(), "Received ack for transaction " + transactionId);
+            }
+
+        });
+
+        PebbleKit.registerReceivedNackHandler(getApplicationContext(), new PebbleKit.PebbleNackReceiver(Pebble_UUID) {
+            //resends message if it isn't received.
+            @Override
+            public void receiveNack(Context context, int wrongedId) {
+                Log.i(getLocalClassName(), "Received nack for transaction " + wrongedId);
+                PebbleDictionary message= lastMessage[wrongedId];
+                PebbleKit.sendDataToPebbleWithTransactionId(getApplicationContext(), Pebble_UUID, message, transactionID);
+            }
+
+        });
 
         //End of pebble code for Game Play
 
@@ -140,7 +163,8 @@ public class MainActivity extends ActionBarActivity {
         PebbleDictionary data = new PebbleDictionary();
         data.addInt32(KEY_SEND_PHASE, GAME_PLAY_SCREEN);
         data.addString(KEY_SEND_ROLE, role);
-        PebbleKit.sendDataToPebble(getApplicationContext(), Pebble_UUID, data);
+        sendDataToWatch(data);
+
     }
 
     public void sendPhaseToWatch(int phase, int score) {
@@ -155,6 +179,12 @@ public class MainActivity extends ActionBarActivity {
         data.addInt32(KEY_SCORE_UPDATE, score);
         PebbleKit.sendDataToPebble(getApplicationContext(), Pebble_UUID, data);
 
+    }
+    private void sendDataToWatch(PebbleDictionary data) {
+        lastMessage[transactionID]=data;
+        PebbleKit.sendDataToPebbleWithTransactionId(getApplicationContext(), Pebble_UUID, data, transactionID);
+        transactionID++;
+        if (transactionID>2) transactionID=0;
     }
 
     private String chooseRandomRole() {
