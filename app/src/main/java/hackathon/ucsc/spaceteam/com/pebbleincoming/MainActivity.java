@@ -88,7 +88,7 @@ public class MainActivity extends ActionBarActivity {
                             break;
                         case GESTURE_3:
                             //Insert Instructions for gesture 3 (please empty)
-                            mButtonView.setText("Gesture 3 Done!");
+                            mButtonView.setText("Gesture 3 Done!, sending transmission");
                             sendToWatchApp(KEY_SEND_PHASE, FINAL_SCREEN);
                             break;
                     }
