@@ -33,9 +33,10 @@ public class MainActivity extends ActionBarActivity {
     private static final int
             KEY_SEND_ROLE= 4,
             KEY_SEND_PHASE=5,
-            WAITING_ROOM_SCREEN= 6,
-            GAME_PLAY_SCREEN=7,
-            FINAL_SCREEN=8;
+            KEY_SCORE_UPDATE= 6,
+            WAITING_ROOM_SCREEN= 7,
+            GAME_PLAY_SCREEN=8,
+            FINAL_SCREEN=9;
 
     //This is the connection to our particular phone app (determined by UUID given in cloudpebble)
     private UUID Pebble_UUID = UUID.fromString("7c02f3fb-ff81-4893-aa1c-f741b2e7c3ff");
@@ -61,7 +62,7 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
+        startWatchApp();
         //Place in onResume or where-ever one expects to receive messages from pebble
         mReceiver = new PebbleDataReceiver(Pebble_UUID) {
 
@@ -79,6 +80,7 @@ public class MainActivity extends ActionBarActivity {
                             //Insert Instructions here upon receiving a gesture 1 (please empty)
                             mButtonView.setText("Gesture 1 Done!, sending transition");
                             sendToWatchApp(KEY_SEND_PHASE, WAITING_ROOM_SCREEN);
+                            sendToWatchApp(KEY_SEND_ROLE, "Elf");
                             break;
                         case GESTURE_2:
                             //Insert Instructions here upon receiving a gesture 2 (please empty)
@@ -90,6 +92,7 @@ public class MainActivity extends ActionBarActivity {
                             //Insert Instructions for gesture 3 (please empty)
                             mButtonView.setText("Gesture 3 Done!, sending transmission");
                             sendToWatchApp(KEY_SEND_PHASE, FINAL_SCREEN);
+                            sendToWatchApp(KEY_SEND_ROLE, "Orc");
                             break;
                     }
                 }
@@ -107,6 +110,7 @@ public class MainActivity extends ActionBarActivity {
 
         //Don't receive data from Pebble
         unregisterReceiver( mReceiver);
+        stopWatchApp();
     }
 
     //Function to start up Watch (ideally when app started up)
