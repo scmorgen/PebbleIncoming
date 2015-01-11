@@ -6,13 +6,14 @@ enum {
     GESTURE_3 = 3,
     KEY_SEND_ROLE= 4,
     KEY_SEND_PHASE=5,
-    WAITING_ROOM_SCREEN= 6,
-    GAME_PLAY_SCREEN=7,
-    FINAL_SCREEN=8  
+    KEY_SCORE_UPDATE= 6,
+    WAITING_ROOM_SCREEN= 7,
+    GAME_PLAY_SCREEN=8,
+    FINAL_SCREEN=9  
 };
 static Window *window;
-TextLayer *title_layer, *location_layer, *temperature_layer, *time_layer;
-char location_buffer[64], temperature_buffer[32], time_buffer[32], title_buffer[32];
+TextLayer *phase_layer, *score_layer, *role_layer, *gesture_layer;
+char phase_buffer[64], score_buffer[32], role_buffer[32], gesture_buffer[32];
 
 
 void send_int(uint8_t key, uint8_t cmd)
@@ -27,18 +28,18 @@ void send_int(uint8_t key, uint8_t cmd)
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(title_layer, "Select");
-  send_int(KEY_BUTTON_EVENT, BUTTON_EVENT_SELECT);
+  text_layer_set_text(gesture_layer, "Last Gesture: SELECT");
+  send_int(KEY_GESTURE, GESTURE_2);
 }
  
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(title_layer, "Up");
-  send_int(KEY_BUTTON_EVENT, BUTTON_EVENT_UP);
+  text_layer_set_text(gesture_layer, "Last Gesture: UP");
+  send_int(KEY_GESTURE, GESTURE_1);
 }
  
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(title_layer, "Down");
-  send_int(KEY_BUTTON_EVENT, BUTTON_EVENT_DOWN);
+  text_layer_set_text(gesture_layer, "Last Gesture: DOWN");
+  send_int(KEY_GESTURE, GESTURE_3);
 }
  
 static void click_config_provider(void *context) {
@@ -48,14 +49,13 @@ static void click_config_provider(void *context) {
 }
 
 
-static TextLayer* init_text_layer(GRect location)
+static TextLayer* init_text_layer(GRect location, GTextAlignment alignment, char * aFont)
 {
   TextLayer *layer = text_layer_create(location);
   text_layer_set_text_color(layer, GColorBlack);
   text_layer_set_background_color(layer, GColorClear);
-  text_layer_set_font(layer, fonts_get_system_font("RESOURCE_ID_GOTHIC_24"));
-  text_layer_set_text_alignment(layer, GTextAlignmentCenter);
- 
+  text_layer_set_font(layer, fonts_get_system_font(aFont));
+  text_layer_set_text_alignment(layer, alignment);
   return layer;
 }
 
@@ -73,24 +73,30 @@ void process_tuple(Tuple *t)
  
   //Decide what to do
   switch(key) {
-    case KEY_LOCATION:
+    case KEY_SEND_PHASE:
       //Location received
-      snprintf(location_buffer, sizeof("Location: couldbereallylongname"), "Location: %s", string_value);
-      text_layer_set_text(location_layer, (char*) &location_buffer);
+      if (value==WAITING_ROOM_SCREEN) {
+        strcpy(string_value, "Waiting Room");
+      } else if (value == GAME_PLAY_SCREEN) {
+        strcpy(string_value,"Play!");
+      } else if (value== FINAL_SCREEN) {
+        strcpy(string_value,"Its the end!");
+      }
+      snprintf(phase_buffer, sizeof("Phase: a long phasename"), "Location: %s", string_value);
+      text_layer_set_text(phase_layer, (char*) &phase_buffer);
       break;
-    case KEY_TEMPERATURE:
-      //Temperature received
-      text_layer_set_text(title_layer, "Yes we got the temperature");
-      snprintf(temperature_buffer, sizeof("Temperature: XX \u00B0C"), "Temperature: %d \u00B0C", value);
-      text_layer_set_text(temperature_layer, (char*) &temperature_buffer);
+    case KEY_SEND_ROLE:
+      //Role received
+      snprintf(role_buffer, sizeof("Role: a long role name"), "Role: %s", string_value);
+      text_layer_set_text(role_layer, (char*) &role_buffer);
       break;
+    case KEY_SCORE_UPDATE:
+      snprintf(score_buffer, sizeof("Score: XXX"), "Role: %d", value);
+      text_layer_set_text(score_layer, (char*) &score_buffer);
+      break;
+    break;
+      
   }
- 
-  //Set time this update came in
-  time_t temp = time(NULL);
-  struct tm *tm = localtime(&temp);
-  strftime(time_buffer, sizeof("Last updated: XX:XX"), "Last updated: %H:%M", tm);
-  text_layer_set_text(time_layer, (char*) &time_buffer);
 }
 // Called when a message is received from PebbleKitJS
 static void in_received_handler(DictionaryIterator *received, void *context) {
@@ -111,30 +117,31 @@ static void in_received_handler(DictionaryIterator *received, void *context) {
 
 void window_load(Window *window) {
   //adding window's elements here
-  title_layer = init_text_layer(GRect(5, 0, 144, 30));
-  text_layer_set_text(title_layer, "Openweathermap.org");
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(title_layer));
   
-  location_layer = init_text_layer(GRect(5, 30, 144, 30));
-  text_layer_set_text(location_layer, "Location: N/A");
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(location_layer));
+  phase_layer = init_text_layer(GRect(5, 0, 144, 30), GTextAlignmentLeft, FONT_KEY_GOTHIC_18);
+  text_layer_set_text(phase_layer, "Phase: INIT");
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(phase_layer));
+  
+  score_layer = init_text_layer(GRect(0, 30, 138, 30), GTextAlignmentRight, FONT_KEY_GOTHIC_18_BOLD);
+  text_layer_set_text(score_layer, "Score: 50");
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(score_layer));
  
-  temperature_layer = init_text_layer(GRect(5, 60, 144, 30));
-  text_layer_set_text(temperature_layer, "Temperature: N/A");
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(temperature_layer));
+  role_layer = init_text_layer(GRect(5, 60, 144, 30), GTextAlignmentCenter, FONT_KEY_GOTHIC_24_BOLD);
+  text_layer_set_text(role_layer, "");
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(role_layer));
    
-  time_layer = init_text_layer(GRect(5, 90, 144, 30));
-  text_layer_set_text(time_layer, "Last updated: N/A");
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(time_layer));
+  gesture_layer = init_text_layer(GRect(5, 90, 144, 30), GTextAlignmentCenter, FONT_KEY_GOTHIC_18);
+  text_layer_set_text(gesture_layer, "Last Gesture: N/A");
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(gesture_layer));
   
 }
 
 void window_unload(Window *window) {
   //destroy all elements here
-  text_layer_destroy(title_layer);
-  text_layer_destroy(location_layer);
-  text_layer_destroy(temperature_layer);
-  text_layer_destroy(time_layer);
+  text_layer_destroy(phase_layer);
+  text_layer_destroy(score_layer);
+  text_layer_destroy(role_layer);
+  text_layer_destroy(gesture_layer);
 }
  
 static void init(void) {
