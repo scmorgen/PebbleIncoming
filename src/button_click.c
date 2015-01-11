@@ -122,11 +122,11 @@ void window_load(Window *window) {
   text_layer_set_text(phase_layer, "Phase: INIT");
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(phase_layer));
   
-  score_layer = init_text_layer(GRect(5, 0, 144, 30), GTextAlignmentRight, FONT_KEY_GOTHIC_18_BOLD);
+  score_layer = init_text_layer(GRect(0, 30, 138, 30), GTextAlignmentRight, FONT_KEY_GOTHIC_18_BOLD);
   text_layer_set_text(score_layer, "Score: 50");
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(score_layer));
  
-  role_layer = init_text_layer(GRect(5, 40, 144, 30), GTextAlignmentCenter, FONT_KEY_GOTHIC_24_BOLD);
+  role_layer = init_text_layer(GRect(5, 60, 144, 30), GTextAlignmentCenter, FONT_KEY_GOTHIC_24_BOLD);
   text_layer_set_text(role_layer, "");
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(role_layer));
    
