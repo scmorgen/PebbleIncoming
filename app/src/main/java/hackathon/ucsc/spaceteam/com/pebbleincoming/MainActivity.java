@@ -20,7 +20,7 @@ import java.util.UUID;
 public class MainActivity extends ActionBarActivity {
 
 
-    private TextView mButtonView;
+    private TextView tvInstructions;
 
     /************ INITALIZATION of GLOBAL VARIABLES FOR WATCH INTERACTIONS *******/
     //This needs to be used for communication
@@ -42,7 +42,7 @@ public class MainActivity extends ActionBarActivity {
 
     //This is the connection to our particular phone app (determined by UUID given in cloudpebble)
     private UUID Pebble_UUID = UUID.fromString("7c02f3fb-ff81-4893-aa1c-f741b2e7c3ff");
-    private PebbleDataReceiver mReceiver; //this is our data receiver
+    private PebbleDataReceiver pebbleDataReceiverReceiver; //this is our data receiver
     private int score=0;
     private int buttonCount=0;
     private PebbleDictionary[] lastMessage= new PebbleDictionary[3];
@@ -56,10 +56,10 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
 
         //
-        mButtonView = new TextView(this);
-        mButtonView.setText("No button yet!");
+        tvInstructions = new TextView(this);
+        tvInstructions.setText("No button yet!");
 
-        setContentView(mButtonView);
+        setContentView(tvInstructions);
 
         //Place in OnCreate Code to start up Pebble
         stopWatchApp();
@@ -71,7 +71,7 @@ public class MainActivity extends ActionBarActivity {
         super.onResume();
         startWatchApp();
         //Place in onResume or where-ever one expects to receive messages from pebble
-        mReceiver = new PebbleDataReceiver(Pebble_UUID) {
+        pebbleDataReceiverReceiver = new PebbleDataReceiver(Pebble_UUID) {
 
             //Function for receiving data from Pebble
             @Override
@@ -85,13 +85,13 @@ public class MainActivity extends ActionBarActivity {
                     switch(button) {
                         case GESTURE_1:
                             //Insert Instructions here upon receiving a gesture 1 (please empty)
-                            mButtonView.setText("Gesture 1 Done!, sending a round start: "+buttonCount );
+                            tvInstructions.setText("Gesture 1 Done!, sending a round start: "+buttonCount );
                             String role= chooseRandomRole();
                             sendRoundStartToWatch(role);
                             break;
                         case GESTURE_2:
                             //Insert Instructions here upon receiving a gesture 2 (please empty)
-                            mButtonView.setText("Gesture 2 Done! sending a phase: "+ buttonCount);
+                            tvInstructions.setText("Gesture 2 Done! sending a phase: "+ buttonCount);
                             if (score>=100) {
                                 sendPhaseToWatch(FINAL_SCREEN, 100);
                             } else {
@@ -100,7 +100,7 @@ public class MainActivity extends ActionBarActivity {
                             break;
                         case GESTURE_3:
                             //Insert Instructions for gesture 3 (please empty)
-                            mButtonView.setText("Gesture 3 Done!, increasing score"+ buttonCount);
+                            tvInstructions.setText("Gesture 3 Done!, increasing score"+ buttonCount);
                             score+=10;
                             sendScoreToWatch(score);
                             break;
@@ -109,7 +109,7 @@ public class MainActivity extends ActionBarActivity {
             }
         };
 
-        PebbleKit.registerReceivedDataHandler(this, mReceiver);
+        PebbleKit.registerReceivedDataHandler(this, pebbleDataReceiverReceiver);
         PebbleKit.registerReceivedAckHandler(getApplicationContext(), new PebbleKit.PebbleAckReceiver(Pebble_UUID) {
 
             @Override
@@ -139,7 +139,7 @@ public class MainActivity extends ActionBarActivity {
         super.onPause();
 
         //Don't receive data from Pebble
-        unregisterReceiver( mReceiver);
+        unregisterReceiver( pebbleDataReceiverReceiver);
         stopWatchApp();
     }
 
