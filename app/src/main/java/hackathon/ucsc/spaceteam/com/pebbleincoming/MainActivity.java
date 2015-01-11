@@ -121,7 +121,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     // Send Data to Watch
-    //Ideally Just when phases changed
+    //Ideally Just when phases changed (start, waitRoom, exit, etc)
     public void sendToWatchApp(int role, Object message) {
         //String time = String.format("%02d:%02d", rand.nextInt(60), rand.nextInt(60));
         //String distance = String.format("%02.02f", 32 * rand.nextDouble());
